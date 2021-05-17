@@ -58,8 +58,7 @@
 
       overlay = final: prev:
         let p = rec {
-          kata-agent = prev.callPackage ./pkgs/kata/agent.nix {};
-          kata-runtime = prev.callPackage ./pkgs/kata/runtime.nix {};
+          kata-containers = prev.callPackage ./pkgs/kata {};
         }; in p // { kataPackages = p; };
 
       nixosModules = {
