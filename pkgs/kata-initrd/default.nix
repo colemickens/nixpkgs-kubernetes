@@ -1,6 +1,6 @@
 { lib
 , makeModulesClosure
-, makeInitrd
+, makeInitrd, rootfsImage
 , writeScript
 , runCommandCC, nukeReferences, busybox, dhcpcd, glibc
 , kata-agent
@@ -162,10 +162,17 @@ let
     sleep 10000
   '';
 in 
-makeInitrd {
-  name = "initrd-kata";
-  contents = [
-    { object = stage-1;
-      symlink = "/init"; }
-  ];
+# makeInitrd {
+#   name = "initrd-kata";
+#   contents = [
+#     { object = stage-1;
+#       symlink = "/init"; }
+#   ];
+# }
+rootfsImage {
+  storePaths = [ stage-1 ];
+  volumeLabel = "initrd";
+  populateImageCommands = ''
+    ln -sf "${stage-1}" files/init
+  '';
 }

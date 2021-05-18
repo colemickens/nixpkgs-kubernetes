@@ -51,7 +51,9 @@
         let p = rec {
           kata-agent = prev.callPackage ./pkgs/kata-agent {};
           kata-kernel = prev.callPackage ./pkgs/kata-kernel {};
-          kata-initrd = prev.callPackage ./pkgs/kata-initrd {};
+          kata-initrd = prev.callPackage ./pkgs/kata-initrd {
+            rootfsImage = prev.callPackage ./pkgs/kata-initrd/make-ext4-fs.nix {};
+          };
           kata-runtime = prev.callPackage ./pkgs/kata-runtime {};
           kata-test = prev.callPackage (
             { stdenv, writeScript, qemu, kata-kernel, kata-initrd

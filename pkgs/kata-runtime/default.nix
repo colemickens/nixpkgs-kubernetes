@@ -45,8 +45,8 @@ in stdenv.mkDerivation rec {
     #"PKGDATADIR=${placeholder "out"}/share"
     "PREFIX=${placeholder "out"}"
 
-    "DEFAULT_HYPERVISOR=qemu"
-    #"DEFAULT_HYPERVISOR=cloud-hypervisor"
+    #"DEFAULT_HYPERVISOR=qemu"
+    "DEFAULT_HYPERVISOR=cloud-hypervisor"
     "HYPERVISORS=qemu,cloud-hypervisor"
   
     "QEMUPATH=${qemu}/bin/qemu-system-x86_64"
@@ -58,16 +58,19 @@ in stdenv.mkDerivation rec {
   postInstall = ''
     mkdir -p $out/share/kata-containers
     kernelDest="$out/share/kata-containers/bzImage"
-    initrdDest="$out/share/kata-containers/initrd.gz"
+    #initrdDest="$out/share/kata-containers/initrd.gz"
+    imageDest="$out/share/kata-containers/image.ext4"
     ln -s "${kata-kernel}/bzImage" "$kernelDest"
-    ln -s "${kata-initrd}/initrd" "$initrdDest"
-    #cp "${kata-kernel}/bzImage" "$kernelDest"
-    #cp "${kata-initrd}/initrd" "$initrdDest"
-
+    #ln -s "${kata-initrd}/initrd" "$initrdDest"
+    ln -s "${kata-initrd}" "$imageDest"
+    
     sed -i "s|kernel =.*|kernel = \"$kernelDest\"|g" \
       "$out/share/defaults/kata-containers/configuration.toml"
 
-    sed -i "s|image =.*|initrd = \"$initrdDest\"|g" \
+    # sed -i "s|image =.*|initrd = \"$initrdDest\"|g" \
+    #   "$out/share/defaults/kata-containers/configuration.toml"
+
+    sed -i "s|image =.*|image = \"$imageDest\"|g" \
       "$out/share/defaults/kata-containers/configuration.toml"
 
     rm $out/share/defaults/kata-containers/configuration-*.toml
