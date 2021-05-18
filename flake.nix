@@ -50,8 +50,18 @@
       overlay = final: prev:
         let p = rec {
           kata-agent = prev.callPackage ./pkgs/kata-agent {};
+          kata-kernel = prev.callPackage ./pkgs/kata-kernel {};
           kata-initrd = prev.callPackage ./pkgs/kata-initrd {};
           kata-runtime = prev.callPackage ./pkgs/kata-runtime {};
+          kata-test = prev.callPackage (
+            { stdenv, writeScript, qemu, kata-kernel, kata-initrd, ... }: 
+            writeScript "test.sh" ''
+              ${qemu}/bin/qemu-system-x86_64 \
+                -m2048 \
+                -kernel ${kata-kernel}/bzImage \
+                -initrd ${kata-initrd}/initrd
+            ''
+          ) {};
         }; in p // { kataPackages = p; };
 
       nixosModules = {

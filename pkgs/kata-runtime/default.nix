@@ -14,14 +14,7 @@
 
 let
   metadata = import ./metadata.nix;
-  imgKernel = (linuxPackages_latest.extend (lib.const (ksuper: {
-    kernel = ksuper.kernel.override {
-      extraConfig = ''
-        FUSE_FS y
-        VIRTIO_FS y
-      '';
-    };
-  }))).kernel;
+  imgKernel = ../kata-kernel/default.nix;
   kataRootInitrd = kata-initrd;
 in stdenv.mkDerivation rec {
   pname = "kata-runtime";
