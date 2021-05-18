@@ -24,6 +24,11 @@ in
     virtualisation.containerd.enable = true;
     virtualisation.containerd.configFile =
       pkgs.writeText "containerd.conf" ''
+        subreaper = true
+        oom_score = -999
+
+        [debug]
+          level = "debug"
         [plugins]
           [plugins.cri]
               [plugins.cri.containerd]

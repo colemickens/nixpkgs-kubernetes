@@ -46,11 +46,12 @@ in stdenv.mkDerivation rec {
     #"PKGDATADIR=${placeholder "out"}/share"
     "PREFIX=${placeholder "out"}"
 
-    "DEFAULT_HYPERVISOR=cloud-hypervisor"
-    "HYPERVISORS=cloud-hypervisor"
+    "DEFAULT_HYPERVISOR=qemu"
+    #"DEFAULT_HYPERVISOR=cloud-hypervisor"
+    "HYPERVISORS=qemu,cloud-hypervisor"
   
     "QEMUPATH=${qemu}/bin/qemu-system-x86_64"
-    "CLHPATH=${cloud-hypervisor}/bin/cloudhypervisor"
+    "CLHPATH=${cloud-hypervisor}/bin/cloud-hypervisor"
     "FCPATH=/disabled"
     "ACRNPATH=/disabled"
   ];
@@ -59,8 +60,10 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/kata-containers
     kernelDest="$out/share/kata-containers/bzImage"
     initrdDest="$out/share/kata-containers/initrd.gz"
-    ln -s "${imgKernel}\bzImage" "$kernelDest"
-    ln -s "${kataRootInitrd}" "$initrdDest"
+    ln -s "${imgKernel}/bzImage" "$kernelDest"
+    ln -s "${kataRootInitrd}/initrd" "$initrdDest"
+    #cp "${imgKernel}/bzImage" "$kernelDest"
+    #cp "${kataRootInitrd}/initrd" "$initrdDest"
 
     sed -i "s|kernel =.*|kernel = \"$kernelDest\"|g" \
       "$out/share/defaults/kata-containers/configuration.toml"
