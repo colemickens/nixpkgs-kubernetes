@@ -38,17 +38,8 @@
       devShell = forAllSystems (system:
         pkgs_.nixpkgs.${system}.mkShell {
           name = "nixcfg-devshell";
-          nativeBuildInputs = []
-          #++ ([ inputs.nix.defaultPackage.${system} ]) # TODO: drop nix input?
-          ++ (with pkgs_.stable.${system}; [ cachix ])
-          # ++ (with inputs.niche.packages.${system}; [ niche ])
-          ++ (with pkgs_.nixpkgs.${system}; [
+          nativeBuildInputs = (with pkgs_.nixpkgs.${system}; [
             nixUnstable
-            #inputs.nickel.packages.${system}.build
-            bash cacert curl git jq parallel mercurial
-            nettools openssh ripgrep rsync
-            nix-build-uncached nix-prefetch-git
-            sops awsweeper packet-cli
           ]);
         }
       );
@@ -58,11 +49,13 @@
 
       overlay = final: prev:
         let p = rec {
-          kata-containers = prev.callPackage ./pkgs/kata {};
+          kata-agent = prev.callPackage ./pkgs/kata-agent {};
+          kata-initrd = prev.callPackage ./pkgs/kata-initrd {};
+          kata-runtime = prev.callPackage ./pkgs/kata-runtime {};
         }; in p // { kataPackages = p; };
 
       nixosModules = {
-        kata = import ./modules/hydra-auto.nix;
+        kata-containers = import ./modules/kata.nix;
       };
     };
 }
