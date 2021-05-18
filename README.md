@@ -250,3 +250,6 @@ May 17 19:44:00 raisin containerd[1614424]: time="2021-05-17T19:44:00.779551088-
 ## Todo
 
 - rename, this isn't meant for kube anymore
+
+- upstream:
+  - containerd uses `zfs` for zfs snapshotter (so it needs it in its path)

@@ -7,14 +7,21 @@
 , cargo, rustc
 , llvmPackages_10
 , openssl
-, linuxPackages_5_11
+, linuxPackages_latest
 , pkg-config
 , kata-initrd
 , ... }:
 
 let
   metadata = import ./metadata.nix;
-  imgKernel = linuxPackages_5_11.kernel;
+  imgKernel = (linuxPackages_latest.extend (lib.const (ksuper: {
+    kernel = ksuper.kernel.override {
+      extraConfig = ''
+        FUSE_FS y
+        VIRTIO_FS y
+      '';
+    };
+  }))).kernel;
   kataRootInitrd = kata-initrd;
 in stdenv.mkDerivation rec {
   pname = "kata-runtime";

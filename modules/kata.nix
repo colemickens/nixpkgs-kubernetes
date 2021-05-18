@@ -40,6 +40,7 @@ in
     
     systemd.services.containerd.path = with pkgs; [
       kata-runtime
+      zfs
     ];
   };
 }
