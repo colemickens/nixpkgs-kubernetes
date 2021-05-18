@@ -8,6 +8,19 @@ Contains some packages and modules for running containerd+kata on NixOS.
 
 ## Status
 
+1. Add the nixos module from this flake
+  to your flake/config.
+
+2. Try this:
+
+```
+❯ sudo ctr c del foo; sudo ctr run --snapshotter native --runtime io.containerd.kata.v2 docker.io/library/hello-world:latest foo
+
+ctr: failed to create shim: Failed to check if grpc server is working: rpc error: code = DeadlineExceeded desc = timed out connecting to vsock 262325044:1024: unknown
+```
+
+3. Get this failed containerd debug journal log:
+
 ```
 May 17 19:43:06 raisin containerd[1595833]: time="2021-05-17T19:43:06.552584864-07:00" level=debug msg="received signal" signal=terminated
 May 17 19:43:06 raisin containerd[1595833]: time="2021-05-17T19:43:06.552901047-07:00" level=debug msg="sd notification" error="<nil>" notified=true state="STOPPING=1"
