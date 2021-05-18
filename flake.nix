@@ -91,6 +91,7 @@
                   -cpu host \
                   -enable-kvm \
                   -m 2048m \
+                  -vga std \
                   -kernel ${kata-kernel}/bzImage \
                   -initrd ${kata-initrd}/initrd \
                   -append "init=/init"
