@@ -10,12 +10,11 @@
 , linuxPackages_latest
 , pkg-config
 , kata-initrd
+, kata-kernel
 , ... }:
 
 let
   metadata = import ./metadata.nix;
-  imgKernel = ../kata-kernel/default.nix;
-  kataRootInitrd = kata-initrd;
 in stdenv.mkDerivation rec {
   pname = "kata-runtime";
   version = metadata.rev;
@@ -60,10 +59,10 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/kata-containers
     kernelDest="$out/share/kata-containers/bzImage"
     initrdDest="$out/share/kata-containers/initrd.gz"
-    ln -s "${imgKernel}/bzImage" "$kernelDest"
-    ln -s "${kataRootInitrd}/initrd" "$initrdDest"
-    #cp "${imgKernel}/bzImage" "$kernelDest"
-    #cp "${kataRootInitrd}/initrd" "$initrdDest"
+    ln -s "${kata-kernel}/bzImage" "$kernelDest"
+    ln -s "${kata-initrd}/initrd" "$initrdDest"
+    #cp "${kata-kernel}/bzImage" "$kernelDest"
+    #cp "${kata-initrd}/initrd" "$initrdDest"
 
     sed -i "s|kernel =.*|kernel = \"$kernelDest\"|g" \
       "$out/share/defaults/kata-containers/configuration.toml"

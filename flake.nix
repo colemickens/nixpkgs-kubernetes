@@ -54,13 +54,47 @@
           kata-initrd = prev.callPackage ./pkgs/kata-initrd {};
           kata-runtime = prev.callPackage ./pkgs/kata-runtime {};
           kata-test = prev.callPackage (
-            { stdenv, writeScript, qemu, kata-kernel, kata-initrd, ... }: 
-            writeScript "test.sh" ''
-              ${qemu}/bin/qemu-system-x86_64 \
-                -m2048 \
-                -kernel ${kata-kernel}/bzImage \
-                -initrd ${kata-initrd}/initrd
-            ''
+            { stdenv, writeScript, qemu, kata-kernel, kata-initrd
+            , containerd, ... }:
+            writeScript "test.sh" 
+              # ''
+              #   ${qemu}/bin/qemu-system-x86_64 \
+              #     -cpu host \
+              #     -enable-kvm \
+              #     -m 2048m \
+              #     -kernel ${kata-kernel}/bzImage \
+              #     -initrd ${kata-initrd}/initrd \
+              #     -append "init=/init"
+              # ''
+              ''
+                set -x
+                sudo systemctl restart containerd
+                sleep 2
+                sudo ctr run \
+                  --snapshotter zfs \
+                  --runtime "io.containerd.kata.v2" \
+                  docker.io/library/hello-world:latest \
+                  foo-$RANDOM
+                
+                journalctl \
+                  _SYSTEMD_INVOCATION_ID=`systemctl show -p InvocationID --value containerd.service` \
+                  > /tmp/containerd.log
+
+              ''
+          ) {};
+          kata-test2 = prev.callPackage (
+            { stdenv, writeScript, qemu, kata-kernel, kata-initrd
+            , containerd, ... }:
+            writeScript "test2.sh" 
+              ''
+                ${qemu}/bin/qemu-system-x86_64 \
+                  -cpu host \
+                  -enable-kvm \
+                  -m 2048m \
+                  -kernel ${kata-kernel}/bzImage \
+                  -initrd ${kata-initrd}/initrd \
+                  -append "init=/init"
+              ''
           ) {};
         }; in p // { kataPackages = p; };
 
