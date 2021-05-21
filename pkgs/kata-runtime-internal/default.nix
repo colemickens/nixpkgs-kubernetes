@@ -9,12 +9,14 @@
 , openssl
 , linuxPackages_latest
 , pkg-config
+, kata-initrd
+, kata-kernel
 , ... }:
 
 let
   metadata = import ./metadata.nix;
 in stdenv.mkDerivation rec {
-  pname = "kata-runtime";
+  pname = "kata-runtime-internal";
   version = metadata.rev;
 
   # https://github.com/NixOS/nixpkgs/issues/25959
@@ -37,22 +39,20 @@ in stdenv.mkDerivation rec {
     GOPATH=$TMPDIR/gopath
   '';
 
+  # TODO: need to build kata-agent into kata-img
+
   makeFlags = [
+    #"PKGDATADIR=${placeholder "out"}/share"
     "PREFIX=${placeholder "out"}"
 
-    "DEFAULT_HYPERVISOR=qemu"
+    #"DEFAULT_HYPERVISOR=qemu"
+    "DEFAULT_HYPERVISOR=cloud-hypervisor"
     "HYPERVISORS=qemu,cloud-hypervisor"
   
     "QEMUPATH=${qemu}/bin/qemu-system-x86_64"
     "CLHPATH=${cloud-hypervisor}/bin/cloud-hypervisor"
+    "FCPATH=/disabled"
+    "ACRNPATH=/disabled"
   ];
-
-  meta = {
-    description = "todo";
-    homepage = "https://github.com/kata-containers/kata-containers";
-    license = lib.licenses.asl20; # TODO
-    maintainers = with lib.maintainers; [ colemickens ]; # TODO
-    platforms = lib.platforms.unix; # TODO linux only
-  };
 }
 
