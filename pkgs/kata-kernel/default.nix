@@ -7,6 +7,9 @@ let
     kernel = ksuper.kernel.override {
       extraConfig = ''
         FUSE_FS y
+        VHOST y
+        VSOCKETS y
+        VHOST_VSOCK y
         VIRTIO_FS y
       '';
     };

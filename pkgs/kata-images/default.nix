@@ -58,9 +58,10 @@ let
   ];
   kernelMods = [
     "dm_mod"
+    "fuse"
     "virtio_net" "virtio_pci" "virtio_mmio" "virtio_blk" "virtio_scsi" "9p" "9pnet_virtio"
-    "virtio_balloon" "virtio_console" "virtio_rng"
-    "vhost_vsock"
+    "virtio_balloon" "virtio_console" "virtio_rng" "virtio_vsock"
+    "vsock" "vhost" "vhost_net" "vhost_vsock"
     "virtiofs"
   ];
 
@@ -138,7 +139,7 @@ let
     ln -s ${modules}/lib/modules /lib/modules
 
     for x in ${lib.concatStringsSep " " kernelMods}; do
-      modprobe $x
+      #modprobe $x
     done
 
     sleep 1
@@ -153,27 +154,23 @@ let
     #!${shell}
     export PATH=${extraUtils}/bin/
     set -x
-    ${kata-agent}/bin/kata-agent &> log
-    head log
-    sleep 10
-    cat log
-
-
-
-    sleep 10000
+    exec ${kata-agent}/bin/kata-agent
   '';
 in 
-# makeInitrd {
-#   name = "initrd-kata";
-#   contents = [
-#     { object = stage-1;
-#       symlink = "/init"; }
-#   ];
-# }
-rootfsImage {
-  storePaths = [ stage-1 ];
-  volumeLabel = "initrd";
-  populateImageCommands = ''
-    ln -sf "${stage-1}" files/init
-  '';
+{
+  initrd = makeInitrd {
+    name = "initrd-kata";
+    contents = [
+      { object = stage-1;
+        symlink = "/init"; }
+    ];
+  };
+
+  image = rootfsImage {
+    storePaths = [ stage-1 ];
+    volumeLabel = "initrd";
+    populateImageCommands = ''
+      ln -sf "${stage-1}" files/init
+    '';
+  };
 }

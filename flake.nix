@@ -49,56 +49,12 @@
 
       overlay = final: prev:
         let p = rec {
-          kata-agent = prev.callPackage ./pkgs/kata-agent {};
-          kata-kernel = prev.callPackage ./pkgs/kata-kernel {};
-          kata-initrd = prev.callPackage ./pkgs/kata-initrd {
-            rootfsImage = prev.callPackage ./pkgs/kata-initrd/make-ext4-fs.nix {};
-          };
-          kata-runtime = prev.callPackage ./pkgs/kata-runtime {};
-          kata-test = prev.callPackage (
-            { stdenv, writeScript, qemu, kata-kernel, kata-initrd
-            , containerd, ... }:
-            writeScript "test.sh" 
-              # ''
-              #   ${qemu}/bin/qemu-system-x86_64 \
-              #     -cpu host \
-              #     -enable-kvm \
-              #     -m 2048m \
-              #     -kernel ${kata-kernel}/bzImage \
-              #     -initrd ${kata-initrd}/initrd \
-              #     -append "init=/init"
-              # ''
-              ''
-                set -x
-                sudo systemctl restart containerd
-                sleep 2
-                sudo ctr run \
-                  --snapshotter zfs \
-                  --runtime "io.containerd.kata.v2" \
-                  docker.io/library/hello-world:latest \
-                  foo-$RANDOM
-                
-                journalctl \
-                  _SYSTEMD_INVOCATION_ID=`systemctl show -p InvocationID --value containerd.service` \
-                  > /tmp/containerd.log
-
-              ''
-          ) {};
-          kata-test2 = prev.callPackage (
-            { stdenv, writeScript, qemu, kata-kernel, kata-initrd
-            , containerd, ... }:
-            writeScript "test2.sh" 
-              ''
-                ${qemu}/bin/qemu-system-x86_64 \
-                  -cpu host \
-                  -enable-kvm \
-                  -m 2048m \
-                  -vga std \
-                  -kernel ${kata-kernel}/bzImage \
-                  -initrd ${kata-initrd}/initrd \
-                  -append "init=/init"
-              ''
-          ) {};
+          # kata-agent = prev.callPackage ./pkgs/kata-agent {};
+          # kata-kernel = prev.callPackage ./pkgs/kata-kernel {};
+          # kata-images = prev.callPackage ./pkgs/kata-images {
+          #   rootfsImage = prev.callPacakge ./pkgs/kata-images/make-ext4-fs.nix {};
+          # };
+          # kata-runtime = prev.callPackage ./pkgs/kata-runtime {};
         }; in p // { kataPackages = p; };
 
       nixosModules = {
@@ -106,21 +62,3 @@
       };
     };
 }
-
-/*
-self: pkgs:
-let
-  kubePkgs = {
-    runc        = pkgs.callPackage ./pkgs/runc {};
-    containerd  = pkgs.callPackage ./pkgs/containerd {};
-    kube-router = pkgs.callPackage ./pkgs/kube-router {};
-  };
-  kubeModules = {
-    kix-containerd  = pkgs.callPackage ./modules/kix-containerd {};
-    kix-kube-router = pkgs.callPackage ./modules/kix-kube-router {};
-    kix-kubelet     = pkgs.callPackage ./modules/kix-kubelet {};
-    kix-kata        = pkgs.callPackage ./modules/kix-kata {};
-  };
-in
-  kubePkgs // { inherit kubePkgs; }
-*/

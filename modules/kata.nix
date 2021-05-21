@@ -7,55 +7,53 @@ let
 
   kata-kernel = pkgs.callPackage ../pkgs/kata-kernel { };
   kata-agent = pkgs.callPackage ../pkgs/kata-agent { };
-  kata-runtime = pkgs.callPackage ../pkgs/kata-runtime { };
-  runtimes = {
-    "qemu" = "${pkgs.qemu}/bin/qemu";
-    "clh" = "${pkgs.cloud-hypervisor}/bin/cloud-hypervisor";
-  };
-
-  configDir = "${kata-runtime}/share/defaults/kata-containers";
-
-  rootfsImage = pkgs.callPackage ../lib/make-ext4-fs.nix {};
-  kernel = "${kata-kernel}/bzImage";
-  stage-1 = pkgs.callPackage ./stage-1.nix {
+  kata-images = pkgs.callPackage ../pkgs/kata-images {
     inherit kata-agent kata-kernel;
+    rootfsImage = pkgs.callPackage ../pkgs/kata-images/make-ext4-fs.nix {};
   };
-  initrd = rootfsImage {
-    storePaths = [ stage-1 ];
-    volumeLabel = "initrd";
-    populateImageCommands = ''
-      ln -sf "${stage-1}" files/init
-    '';
-  };
-  virtiofsd = "${qemu}/libexec/virtiofsd";
+  kata-initrd = kata-images.initrd;
+  kata-rootfs = kata-images.image;
+  kata-runtime = pkgs.callPackage ../pkgs/kata-runtime { };
+
+  kernel = "${kata-kernel}/bzImage";
+  initrd = "${kata-initrd}/initrd.gz";
+  rootfs = "${kata-rootfs}";
+  virtiofsd = "${pkgs.qemu}/libexec/virtiofsd";
   containerdShims = pkgs.runCommand "containerd-shims"
     {
       nativeBuildInputs = [ pkgs.makeWrapper ];
     } ''
     declare -A bins
-    bins["clh"]="${runtimes.clh}"
-    bins["qemu"]="${runtimes.qemu}"
+    bins[clh]="${pkgs.cloud-hypervisor}/bin/cloud-hypervisor"
+    bins[qemu]="${pkgs.qemu}/bin/qemu-kvm"
     mkdir -p $out/bin
+    mkdir -p $out/share/defaults/kata-containers
     for shim in qemu clh; do
       cfg="$out/share/defaults/kata-containers/configuration-$shim.toml"
 
       cp "${kata-runtime}/share/defaults/kata-containers/configuration-$shim.toml" "$cfg"
 
+      bin="''${bins[$shim]}"
+
       # patch up that config file
-      sed -i "s|path =.*|path = \"$bins[$shim]\"|g" "$cfg"
+      sed -i "s|path =.*|path = \"$bin\"|g" "$cfg"
       sed -i "s|kernel =.*|kernel = \"${kernel}\"|g" "$cfg"
+      #sed -i "s|image =.*|image = \"${rootfs}\"|g" "$cfg"
       sed -i "s|image =.*|initrd = \"${initrd}\"|g" "$cfg"
-      sed -i "s|virtiofs_daemon =.*|virtiofs_daemon = \"${virtiofsd}\"|g" "$cfg"
+      sed -i "s|virtio_fs_daemon =.*|virtio_fs_daemon = \"${virtiofsd}\"|g" "$cfg"
+
+      #
+      #
+      # TODO
+      #
+      #
+      # we should blank or fix valid_{hypervisor|virtiofs_daemon}_paths
 
       makeWrapper \
-        "${kata-containers}/bin/containerd-shim-kata-v2" \
+        "${kata-runtime}/bin/containerd-shim-kata-v2" \
         "$out/bin/containerd-shim-kata-$shim-v2" \
           --set KATA_CONF_FILE "$cfg"
     done
-  '';
-
-  pointer = pkgs.writeScriptBin "kata-containerd-shims" ''
-    echo "${containerdShims}"
   '';
 in
 {
@@ -71,7 +69,45 @@ in
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ pointer ];
+    environment.systemPackages = [
+      (pkgs.callPackage (
+        { stdenv, writeScriptBin, qemu
+        , containerd, ... }:
+        writeScriptBin "kata-test"
+          ''
+            set -x
+            sudo systemctl restart containerd
+            sleep 2
+            sudo ctr run \
+              --snapshotter zfs \
+              --runtime "io.containerd.kata-$1.v2" \
+              docker.io/library/hello-world:latest \
+              foo-$RANDOM
+            
+            journalctl \
+              _SYSTEMD_INVOCATION_ID=`systemctl show -p InvocationID --value containerd.service` \
+              > /tmp/containerd.log
+
+          ''
+      ) {})
+      (pkgs.callPackage (
+        { stdenv, writeScriptBin, qemu
+        , containerd, ... }:
+        writeScriptBin "kata-test2" 
+          ''
+            set -x
+            ${qemu}/bin/qemu-system-x86_64 \
+              -cpu host \
+              -enable-kvm \
+              -m 2048m \
+              -nographic \
+              -kernel ${kernel} \
+              -initrd ${initrd} \
+              -append "init=/init console=ttyS0"
+          ''
+      ) {})
+    ];
+
     virtualisation.containerd.enable = true;
     virtualisation.containerd.configFile =
       pkgs.writeText "containerd.conf" ''
@@ -86,13 +122,13 @@ in
             privileged_without_host_devices = true
             pod_annotations = ["io.katacontainers.*"]
             [plugins.cri.containerd.runtimes.kata-qemu.options]
-              ConfigPath = "${configDir}/configuration-qemu.toml"
+              ConfigPath = "${containerdShims}/share/defaults/kata-containers/configuration-qemu.toml"
           [plugins.cri.containerd.runtimes.kata-clh]
             runtime_type = "io.containerd.kata-clh.v2"
             privileged_without_host_devices = true
             pod_annotations = ["io.katacontainers.*"]
             [plugins.cri.containerd.runtimes.kata-clh.options]
-              ConfigPath = "${configDir}/configuration-clh.toml"
+              ConfigPath = "${containerdShims}/share/defaults/kata-containers/configuration-clh.toml"
       '';
     
     systemd.services.containerd.path = with pkgs; [
